@@ -1,0 +1,51 @@
+name: Release HTML
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload-html:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build single-file HTML
+        run: npm run build:html
+
+      - name: Upload HTML to workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: l6max-web-midi-controller-html
+          path: dist/l6max-web-midi-controller.html
+
+      - name: Upload factory config to workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: l6max-factory-config
+          path: configs/factory-default.json
+
+      - name: Create or update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          gh release create "${{ github.ref_name }}"
+          --title "${{ github.ref_name }}"
+          --generate-notes
+          dist/l6max-web-midi-controller.html
+          configs/factory-default.json
+          || gh release upload "${{ github.ref_name }}"
+          dist/l6max-web-midi-controller.html
+          configs/factory-default.json
+          --clobber

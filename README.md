@@ -37,6 +37,23 @@ npm run desktop:build:mac
 npm run desktop:build:win
 ```
 
+## GitHub Releases
+
+В репозитории есть workflow [`.github/workflows/release-html.yml`](/Users/nsance/code/vibe_projects/zoom-mixer-control/.github/workflows/release-html.yml).
+
+Что он делает:
+
+- на `git push` тега вида `v*` сам создает GitHub Release
+- собирает `dist/l6max-web-midi-controller.html`
+- прикладывает к Release два готовых asset-файла: `l6max-web-midi-controller.html` и `factory-default.json`
+- параллельно сохраняет оба файла в workflow artifacts
+
+Базовый поток:
+
+1. создать тег, например `v0.1.0`
+2. запушить его: `git push origin v0.1.0`
+3. GitHub Actions сам создаст Release и приложит готовые asset-файлы
+
 ## Конфиги
 
 В интерфейсе уже есть:
