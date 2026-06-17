@@ -83,19 +83,24 @@ jobs:
       - name: Build macOS desktop artifacts
         run: npm run desktop:build:mac
 
+      - name: Create stable macOS asset names
+        run: |
+          cp apps/desktop/electron/dist/*-arm64.dmg apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.dmg
+          cp apps/desktop/electron/dist/*-arm64-mac.zip apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.zip
+
       - name: Upload macOS artifacts to workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: l6max-macos-build
           path: |
-            apps/desktop/electron/dist/ZOOM L6 Max Controller-*-arm64.dmg
-            apps/desktop/electron/dist/ZOOM L6 Max Controller-*-arm64-mac.zip
+            apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.dmg
+            apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.zip
 
       - name: Upload macOS assets to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
           gh release upload "${{ github.ref_name }}"
-          apps/desktop/electron/dist/*.dmg
-          apps/desktop/electron/dist/*-mac.zip
+          apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.dmg
+          apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.zip
           --clobber
