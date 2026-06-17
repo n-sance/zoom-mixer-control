@@ -1,6 +1,6 @@
 {
   "name": "zoom-l6max-controller",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -15,4 +15,3 @@
     "desktop:build:win": "npm --workspace @zoom-l6max/desktop-electron run build:win"
   }
 }
-
