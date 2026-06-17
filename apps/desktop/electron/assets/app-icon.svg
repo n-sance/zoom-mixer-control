@@ -1,0 +1,133 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="panelStroke" x1="110" y1="74" x2="934" y2="950" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5D626D"/>
+      <stop offset="1" stop-color="#232831"/>
+    </linearGradient>
+    <linearGradient id="panelFill" x1="150" y1="120" x2="874" y2="904" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#464B54"/>
+      <stop offset="1" stop-color="#1A1F27"/>
+    </linearGradient>
+    <linearGradient id="trackBlue" x1="0" y1="240" x2="0" y2="826" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A1622"/>
+      <stop offset="0.5" stop-color="#28C8FF"/>
+      <stop offset="1" stop-color="#0E2230"/>
+    </linearGradient>
+    <linearGradient id="trackMint" x1="0" y1="292" x2="0" y2="848" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#081816"/>
+      <stop offset="0.5" stop-color="#72F7D8"/>
+      <stop offset="1" stop-color="#0D201C"/>
+    </linearGradient>
+    <linearGradient id="knobFill" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#7F8794"/>
+      <stop offset="0.5" stop-color="#363B44"/>
+      <stop offset="1" stop-color="#9FA7B5"/>
+    </linearGradient>
+    <filter id="dropShadow" x="82" y="82" width="860" height="860" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="22"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0.017 0 0 0 0 0.05 0 0 0 0.45 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="224" fill="#050608"/>
+  <g filter="url(#dropShadow)">
+    <rect x="96" y="96" width="832" height="832" rx="178" fill="#11151B"/>
+    <rect x="112" y="112" width="800" height="800" rx="162" fill="url(#panelStroke)"/>
+    <rect x="132" y="132" width="760" height="760" rx="144" fill="url(#panelFill)"/>
+
+    <g opacity="0.9">
+      <rect x="254" y="214" width="58" height="628" rx="29" fill="#090C10"/>
+      <rect x="483" y="184" width="58" height="662" rx="29" fill="#0A1018"/>
+      <rect x="712" y="214" width="58" height="628" rx="29" fill="#090C10"/>
+    </g>
+
+    <rect x="497" y="210" width="30" height="596" rx="15" fill="url(#trackBlue)"/>
+    <rect x="726" y="536" width="30" height="274" rx="15" fill="url(#trackMint)"/>
+    <rect x="268" y="714" width="30" height="92" rx="15" fill="#BFC5CE"/>
+
+    <g opacity="0.62" stroke="#D2D6DE" stroke-width="8" stroke-linecap="round">
+      <path d="M208 270H236"/>
+      <path d="M208 354H236"/>
+      <path d="M208 438H236"/>
+      <path d="M208 522H236"/>
+      <path d="M208 606H236"/>
+      <path d="M208 690H236"/>
+      <path d="M208 774H236"/>
+
+      <path d="M349 270H377"/>
+      <path d="M349 354H377"/>
+      <path d="M349 438H377"/>
+      <path d="M349 522H377"/>
+      <path d="M349 606H377"/>
+      <path d="M349 690H377"/>
+
+      <path d="M437 238H465"/>
+      <path d="M437 322H465"/>
+      <path d="M437 406H465"/>
+      <path d="M437 490H465"/>
+      <path d="M437 574H465"/>
+      <path d="M437 658H465"/>
+      <path d="M437 742H465"/>
+      <path d="M437 826H465"/>
+
+      <path d="M559 238H587"/>
+      <path d="M559 322H587"/>
+      <path d="M559 406H587"/>
+      <path d="M559 490H587"/>
+      <path d="M559 574H587"/>
+      <path d="M559 658H587"/>
+      <path d="M559 742H587"/>
+      <path d="M559 826H587"/>
+
+      <path d="M649 270H677"/>
+      <path d="M649 354H677"/>
+      <path d="M649 438H677"/>
+      <path d="M649 522H677"/>
+      <path d="M649 606H677"/>
+      <path d="M649 690H677"/>
+
+      <path d="M790 270H818"/>
+      <path d="M790 354H818"/>
+      <path d="M790 438H818"/>
+      <path d="M790 522H818"/>
+      <path d="M790 606H818"/>
+      <path d="M790 690H818"/>
+      <path d="M790 774H818"/>
+    </g>
+
+    <g>
+      <rect x="236" y="596" width="94" height="192" rx="28" fill="url(#knobFill)" stroke="#1D2128" stroke-width="6"/>
+      <rect x="248" y="622" width="70" height="8" rx="4" fill="#232830"/>
+      <rect x="248" y="640" width="70" height="8" rx="4" fill="#232830"/>
+      <rect x="248" y="658" width="70" height="8" rx="4" fill="#232830"/>
+      <rect x="258" y="706" width="50" height="12" rx="6" fill="#EDF1F7"/>
+      <rect x="248" y="740" width="70" height="8" rx="4" fill="#232830"/>
+      <rect x="248" y="758" width="70" height="8" rx="4" fill="#232830"/>
+    </g>
+
+    <g>
+      <rect x="435" y="332" width="154" height="206" rx="32" fill="url(#knobFill)" stroke="#1D2128" stroke-width="6"/>
+      <rect x="453" y="366" width="118" height="9" rx="4.5" fill="#232830"/>
+      <rect x="453" y="386" width="118" height="9" rx="4.5" fill="#232830"/>
+      <rect x="453" y="406" width="118" height="9" rx="4.5" fill="#232830"/>
+      <rect x="469" y="460" width="86" height="14" rx="7" fill="#7BE1FF"/>
+      <rect x="453" y="508" width="118" height="9" rx="4.5" fill="#232830"/>
+      <rect x="453" y="528" width="118" height="9" rx="4.5" fill="#232830"/>
+    </g>
+
+    <g>
+      <rect x="662" y="500" width="138" height="182" rx="30" fill="url(#knobFill)" stroke="#1D2128" stroke-width="6"/>
+      <rect x="678" y="530" width="106" height="9" rx="4.5" fill="#232830"/>
+      <rect x="678" y="550" width="106" height="9" rx="4.5" fill="#232830"/>
+      <rect x="678" y="570" width="106" height="9" rx="4.5" fill="#232830"/>
+      <rect x="692" y="616" width="78" height="14" rx="7" fill="#8BF7DF"/>
+      <rect x="678" y="656" width="106" height="9" rx="4.5" fill="#232830"/>
+    </g>
+  </g>
+</svg>

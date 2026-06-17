@@ -22,12 +22,15 @@
     "productName": "ZOOM L6 Max Controller",
     "electronVersion": "31.7.7",
     "npmRebuild": false,
+    "icon": "assets/app-icon.icns",
     "files": [
       "main.cjs",
       "preload.cjs",
-      "renderer/**/*"
+      "renderer/**/*",
+      "assets/app-icon.icns"
     ],
     "mac": {
+      "icon": "assets/app-icon.icns",
       "category": "public.app-category.music",
       "target": [
         "dmg",
