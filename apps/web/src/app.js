@@ -190,6 +190,7 @@ let midiOutputs = new Map();
 let midiSendFrameId = 0;
 let saveStateTimeoutId = 0;
 const pendingMidiMessages = new Map();
+const lastSentMidiValues = new Map();
 
 const elements = {
   connectButton: document.getElementById("connectButton"),
@@ -216,6 +217,14 @@ function flash(message, isError = false) {
 
 function appendLog(message) {
   console.log("[L6max MIDI] " + message);
+}
+
+function getMidiMessageCacheKey(output, status, ccNumber, dedupeKey) {
+  if (!output) {
+    return null;
+  }
+
+  return [output.id, status, ccNumber, dedupeKey || ""].join(":");
 }
 
 function scheduleStateSave() {
@@ -397,7 +406,10 @@ function flushPendingMidiMessages() {
   midiSendFrameId = 0;
 
   for (const message of pendingMidiMessages.values()) {
-    sendControlChange(message.cc, message.value, message.label, { log: false });
+    sendControlChange(message.cc, message.value, message.label, {
+      log: false,
+      dedupeKey: message.queueKey
+    });
   }
 
   pendingMidiMessages.clear();
@@ -412,6 +424,7 @@ function flushPendingMidiMessagesNow() {
 
 function scheduleMidiSend(queueKey, cc, value, label) {
   pendingMidiMessages.set(queueKey, {
+    queueKey,
     cc,
     value,
     label
@@ -522,9 +535,17 @@ function sendControlChange(cc, value, label, options = {}) {
   const status = 0xB0 + (FIXED_MIDI_CHANNEL - 1);
   const ccNumber = clampInt(cc, 0, 127, 0);
   const dataValue = clampInt(value, 0, 127, 0);
+  const messageCacheKey = getMidiMessageCacheKey(output, status, ccNumber, options.dedupeKey);
+
+  if (options.dedupeKey && lastSentMidiValues.get(messageCacheKey) === dataValue) {
+    return false;
+  }
 
   try {
     output.send([status, ccNumber, dataValue]);
+    if (messageCacheKey) {
+      lastSentMidiValues.set(messageCacheKey, dataValue);
+    }
     if (options.log !== false) {
       appendLog("Sent " + label + " on CC " + ccNumber + " value " + dataValue + ".");
     }
@@ -537,23 +558,39 @@ function sendControlChange(cc, value, label, options = {}) {
   }
 }
 
-function sendChannelControl(channelIndex, key) {
+function sendChannelControl(channelIndex, key, options = {}) {
   const channel = state.channels[channelIndex];
   const cc = channel.mapping[key];
   if (cc === "") {
     appendLog("Channel " + channel.id + " " + key + " not sent: CC mapping is empty.");
     return;
   }
-  sendControlChange(cc, ccValueFromState(channel[key]), "CH " + channel.id + " " + key.toUpperCase());
+  sendControlChange(
+    cc,
+    ccValueFromState(channel[key]),
+    "CH " + channel.id + " " + key.toUpperCase(),
+    {
+      ...options,
+      dedupeKey: options.dedupeKey || "channel:" + channelIndex + ":" + key
+    }
+  );
 }
 
-function sendGlobalControl(key) {
+function sendGlobalControl(key, options = {}) {
   const cc = state.globalMapping[key];
   if (cc === "") {
     appendLog("Global " + key + " not sent: CC mapping is empty.");
     return;
   }
-  sendControlChange(cc, ccValueFromState(state.globals[key]), "GLOBAL " + key.toUpperCase());
+  sendControlChange(
+    cc,
+    ccValueFromState(state.globals[key]),
+    "GLOBAL " + key.toUpperCase(),
+    {
+      ...options,
+      dedupeKey: options.dedupeKey || "global:" + key
+    }
+  );
 }
 
 async function connectMidi() {
@@ -582,6 +619,7 @@ function updateMidiPorts() {
   }
 
   midiOutputs = nextOutputs;
+  lastSentMidiValues.clear();
 
   if (!midiOutputs.has(state.selectedOutputId)) {
     const preferred = Array.from(midiOutputs.values()).find((output) => classifyOutput(output) === "mixer-control");
