@@ -45,8 +45,12 @@ npm run desktop:build:win
 
 - на `git push` тега вида `v*` сам создает GitHub Release
 - собирает `dist/l6max-web-midi-controller.html`
-- прикладывает к Release два готовых asset-файла: `l6max-web-midi-controller.html` и `factory-default.json`
-- параллельно сохраняет оба файла в workflow artifacts
+- прикладывает к Release четыре готовых asset-файла:
+  - `l6max-web-midi-controller.html`
+  - `factory-default.json`
+  - `ZOOM L6 Max Controller-<version>-arm64.dmg`
+  - `ZOOM L6 Max Controller-<version>-arm64-mac.zip`
+- параллельно сохраняет web и macOS артефакты в workflow artifacts
 
 Базовый поток:
 
