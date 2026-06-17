@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/zoom-l6max-controller/config.schema.json",
+  "title": "ZOOM L6 Max Controller Config",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "state"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "appId": {
+      "type": "string"
+    },
+    "mixerModel": {
+      "type": "string"
+    },
+    "presetName": {
+      "type": "string"
+    },
+    "exportedAt": {
+      "type": "string"
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "midiChannel",
+        "channels",
+        "globals",
+        "globalMapping"
+      ],
+      "properties": {
+        "midiChannel": {
+          "type": "integer",
+          "const": 1
+        },
+        "selectedOutputId": {
+          "type": "string"
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "mapping"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "name": {
+                "type": "string"
+              },
+              "level": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "pan": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "mute": {
+                "type": "boolean"
+              },
+              "aux1": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "aux2": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "efx": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "subMix": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "eqHi": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "eqMidFreq": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "eqMidLevel": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "eqLo": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 127
+              },
+              "mapping": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "globals": {
+          "type": "object",
+          "properties": {
+            "compressor": {
+              "type": "boolean"
+            },
+            "mono5": {
+              "type": "boolean"
+            },
+            "mono6": {
+              "type": "boolean"
+            },
+            "usb12": {
+              "type": "boolean"
+            },
+            "usb34": {
+              "type": "boolean"
+            },
+            "efxType": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 127
+            }
+          }
+        },
+        "globalMapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
+

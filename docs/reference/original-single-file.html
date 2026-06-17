@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZOOM L6max Web MIDI Controller</title>
+  <style>
+    :root {
+      --bg: #0e1116;
+      --panel: #161b22;
+      --panel-2: #1f2630;
+      --panel-3: #0f141a;
+      --text: #edf2f7;
+      --muted: #9aa6b2;
+      --line: #2d3642;
+      --accent: #66d9ef;
+      --accent-2: #82f7bf;
+      --danger: #ff6b6b;
+      --warn: #f4c95d;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+      --radius: 18px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(102, 217, 239, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(130, 247, 191, 0.12), transparent 24%),
+        linear-gradient(180deg, #090c11 0%, #0e1116 100%);
+      color: var(--text);
+      font-family: var(--ui);
+    }
+
+    body {
+      padding: 22px;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 22px;
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .main {
+      padding: 20px;
+      display: grid;
+      gap: 18px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 2vw, 2.2rem);
+      letter-spacing: -0.04em;
+    }
+
+    h2 {
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .hero {
+      display: grid;
+      gap: 10px;
+    }
+
+    .pill-row,
+    .button-row,
+    .status-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .utility-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 12px;
+      font-size: 0.87rem;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.14);
+    }
+
+    .dot.ok {
+      background: var(--accent-2);
+      box-shadow: 0 0 0 4px rgba(130, 247, 191, 0.14);
+    }
+
+    .dot.warn {
+      background: var(--warn);
+      box-shadow: 0 0 0 4px rgba(244, 201, 93, 0.14);
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    input,
+    select,
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--panel-3);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 12px;
+      outline: none;
+      transition: border-color 120ms ease, transform 120ms ease;
+    }
+
+    textarea {
+      min-height: 158px;
+      resize: vertical;
+      font-family: var(--mono);
+      line-height: 1.45;
+      font-size: 0.88rem;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 11px 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(102, 217, 239, 0.4);
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, rgba(102, 217, 239, 0.3), rgba(102, 217, 239, 0.16));
+      border-color: rgba(102, 217, 239, 0.42);
+    }
+
+    button.ghost {
+      background: transparent;
+    }
+
+    button.warn {
+      border-color: rgba(255, 107, 107, 0.28);
+      color: #ffd5d5;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .notice {
+      border: 1px solid rgba(244, 201, 93, 0.24);
+      background: rgba(244, 201, 93, 0.08);
+      color: #ffefb9;
+      border-radius: 14px;
+      padding: 12px 14px;
+      line-height: 1.45;
+      font-size: 0.9rem;
+    }
+
+    .channels {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+    }
+
+    .channel-card {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+    }
+
+    .channel-head {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+    }
+
+    .channel-number {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(102, 217, 239, 0.24), rgba(102, 217, 239, 0.08));
+      color: #dbfbff;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .channel-subtitle {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .quick-controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .control {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .control-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    .control small,
+    .mapping-grid small {
+      color: var(--muted);
+      font-size: 0.74rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .range-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-family: var(--mono);
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .toggle button {
+      min-width: 88px;
+      padding-inline: 12px;
+    }
+
+    .toggle button.active {
+      background: linear-gradient(180deg, rgba(130, 247, 191, 0.3), rgba(130, 247, 191, 0.14));
+      border-color: rgba(130, 247, 191, 0.36);
+      color: #effff6;
+    }
+
+    .switch-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .switch {
+      position: relative;
+      width: 56px;
+      height: 32px;
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .switch input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .switch-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+
+    .switch-track::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f6fbff;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+      transition: transform 120ms ease;
+    }
+
+    .switch input:checked + .switch-track {
+      background: rgba(130, 247, 191, 0.26);
+      border-color: rgba(130, 247, 191, 0.4);
+    }
+
+    .switch input:checked + .switch-track::after {
+      transform: translateX(24px);
+    }
+
+    details {
+      border: 1px dashed rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.14);
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.84rem;
+      list-style: none;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .mapping-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mapping-grid.compact-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .log {
+      min-height: 240px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #0a0d12;
+      color: #d6dee7;
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      line-height: 1.45;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      margin: 2px 0;
+    }
+
+    .small {
+      font-size: 0.8rem;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+
+    .success-flash {
+      color: var(--accent-2);
+      font-size: 0.8rem;
+      min-height: 1em;
+    }
+
+    @media (max-width: 1080px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 14px;
+      }
+
+      .field-grid,
+      .mapping-grid,
+      .mapping-grid.compact-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel sidebar">
+      <section class="stack">
+        <div class="button-row">
+          <button class="primary" id="connectButton">Connect MIDI</button>
+        </div>
+        <div class="pill"><span class="dot" id="permissionDot"></span><span id="permissionText">MIDI not connected</span></div>
+        <div class="notice" id="portAdvice">
+          This page uses only <strong>L6max Mixer Control Port</strong> on <strong>MIDI CH 1</strong>.
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="utility-grid" id="globalControls"></div>
+      </section>
+    </aside>
+
+    <main class="panel main">
+      <section class="stack">
+        <div class="channels" id="channelsRoot"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "l6max-web-midi-controller-state-v2";
+    const FIXED_MIDI_CHANNEL = 1;
+    const LEGACY_STORAGE_KEYS = [
+      "l6max-web-midi-controller-state-v1"
+    ];
+    const QUICK_RANGE_CONTROLS = ["level", "pan", "aux1", "aux2", "efx", "subMix", "eqHi", "eqMidFreq", "eqMidLevel", "eqLo"];
+    const TOGGLE_CONTROLS = ["mute"];
+
+    const RANGE_DEFS = {
+      level: { label: "Level", min: 0, max: 127, defaultValue: 100, hint: "0 = off, 127 = max" },
+      pan: { label: "Pan", min: 0, max: 127, defaultValue: 64, hint: "64 = center" },
+      aux1: { label: "Aux 1", min: 0, max: 127, defaultValue: 0, hint: "Send to AUX 1" },
+      aux2: { label: "Aux 2", min: 0, max: 127, defaultValue: 0, hint: "Send to AUX 2" },
+      efx: { label: "EFX Send", min: 0, max: 127, defaultValue: 0, hint: "Internal effect send" },
+      subMix: { label: "Sub Mix Send", min: 0, max: 127, defaultValue: 0, hint: "SUB MIX send" },
+      eqHi: { label: "EQ Hi Level", min: 0, max: 127, defaultValue: 64, hint: "EQ high gain" },
+      eqMidFreq: { label: "EQ Mid Freq", min: 0, max: 127, defaultValue: 64, hint: "EQ mid frequency" },
+      eqMidLevel: { label: "EQ Mid Level", min: 0, max: 127, defaultValue: 64, hint: "EQ mid gain" },
+      eqLo: { label: "EQ Lo Level", min: 0, max: 127, defaultValue: 64, hint: "EQ low gain" }
+    };
+
+    const FACTORY_CHANNEL_MAPPING = {
+      level: [81, 82, 83, 84, 85, 86, 87, 88],
+      pan: [73, 74, 75, 76, 77, 78, 79, 80],
+      mute: [93, 94, 95, 102, 103, 104, 105, 106],
+      aux1: [49, 50, 51, 52, 53, 54, 55, 56],
+      aux2: [57, 58, 59, 60, 61, 62, 63, 64],
+      efx: [65, 66, 67, 68, 69, 70, 71, 72],
+      subMix: [41, 42, 43, 44, 45, 46, 47, 48],
+      eqHi: [1, 2, 3, 4, 5, 6, 7, 8],
+      eqMidFreq: [11, 12, 13, 14, 15, 16, 17, 18],
+      eqMidLevel: [21, 22, 23, 24, 25, 26, 27, 28],
+      eqLo: [33, 34, 35, 36, 37, 38, 39, 40]
+    };
+
+    const FACTORY_GLOBAL_MAPPING = {
+      compressor: "119",
+      mono5: "109",
+      mono6: "110",
+      usb12: "113",
+      usb34: "114",
+      efxType: "117"
+    };
+
+    const LEGACY_EXAMPLE_CHANNEL_MAPPING = {
+      level: [10, 11, 12, 13, 14, 15, 16, 17],
+      pan: [20, 21, 22, 23, 24, 25, 26, 27],
+      mute: [30, 31, 32, 33, 34, 35, 36, 37],
+      aux1: [40, 41, 42, 43, 44, 45, 46, 47],
+      aux2: [50, 51, 52, 53, 54, 55, 56, 57],
+      efx: [60, 61, 62, 63, 64, 65, 66, 67],
+      subMix: [70, 71, 72, 73, 74, 75, 76, 77]
+    };
+
+    const LEGACY_EXAMPLE_GLOBAL_MAPPING = {
+      compressor: "90",
+      mono5: "91",
+      mono6: "92",
+      usb12: "93",
+      usb34: "94"
+    };
+
+    function getFactoryChannelMapping(index) {
+      return {
+        level: String(FACTORY_CHANNEL_MAPPING.level[index]),
+        pan: String(FACTORY_CHANNEL_MAPPING.pan[index]),
+        mute: String(FACTORY_CHANNEL_MAPPING.mute[index]),
+        aux1: String(FACTORY_CHANNEL_MAPPING.aux1[index]),
+        aux2: String(FACTORY_CHANNEL_MAPPING.aux2[index]),
+        efx: String(FACTORY_CHANNEL_MAPPING.efx[index]),
+        subMix: String(FACTORY_CHANNEL_MAPPING.subMix[index]),
+        eqHi: String(FACTORY_CHANNEL_MAPPING.eqHi[index]),
+        eqMidFreq: String(FACTORY_CHANNEL_MAPPING.eqMidFreq[index]),
+        eqMidLevel: String(FACTORY_CHANNEL_MAPPING.eqMidLevel[index]),
+        eqLo: String(FACTORY_CHANNEL_MAPPING.eqLo[index])
+      };
+    }
+
+    const GLOBAL_CONTROL_DEFS = [
+      { key: "compressor", label: "Compressor", type: "toggle", defaultValue: false },
+      { key: "mono5", label: "MONO x2 CH 5", type: "toggle", defaultValue: false },
+      { key: "mono6", label: "MONO x2 CH 6", type: "toggle", defaultValue: false },
+      { key: "usb12", label: "USB 1/2", type: "toggle", defaultValue: false },
+      { key: "usb34", label: "USB 3/4", type: "toggle", defaultValue: false },
+      { key: "efxType", label: "EFX Type", type: "range", defaultValue: 0, min: 0, max: 127, hint: "Raw EFX type value" }
+    ];
+
+    function createDefaultChannel(index) {
+      return {
+        id: index + 1,
+        name: "Channel " + (index + 1),
+        level: RANGE_DEFS.level.defaultValue,
+        pan: RANGE_DEFS.pan.defaultValue,
+        mute: false,
+        aux1: RANGE_DEFS.aux1.defaultValue,
+        aux2: RANGE_DEFS.aux2.defaultValue,
+        efx: RANGE_DEFS.efx.defaultValue,
+        subMix: RANGE_DEFS.subMix.defaultValue,
+        eqHi: RANGE_DEFS.eqHi.defaultValue,
+        eqMidFreq: RANGE_DEFS.eqMidFreq.defaultValue,
+        eqMidLevel: RANGE_DEFS.eqMidLevel.defaultValue,
+        eqLo: RANGE_DEFS.eqLo.defaultValue,
+        mapping: getFactoryChannelMapping(index)
+      };
+    }
+
+    function createDefaultState() {
+      const globals = {};
+      const globalMapping = {};
+      for (const def of GLOBAL_CONTROL_DEFS) {
+        globals[def.key] = def.defaultValue;
+        globalMapping[def.key] = FACTORY_GLOBAL_MAPPING[def.key] || "";
+      }
+
+      return {
+        midiChannel: FIXED_MIDI_CHANNEL,
+        selectedOutputId: "",
+        channels: Array.from({ length: 8 }, (_, index) => createDefaultChannel(index)),
+        globals,
+        globalMapping
+      };
+    }
+
+    function loadState() {
+      try {
+        for (const legacyKey of LEGACY_STORAGE_KEYS) {
+          localStorage.removeItem(legacyKey);
+        }
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return createDefaultState();
+        }
+        const parsed = JSON.parse(raw);
+        return mergeState(createDefaultState(), parsed);
+      } catch (error) {
+        return createDefaultState();
+      }
+    }
+
+    function mergeState(base, incoming) {
+      const next = createDefaultState();
+      next.midiChannel = FIXED_MIDI_CHANNEL;
+      next.selectedOutputId = typeof incoming?.selectedOutputId === "string" ? incoming.selectedOutputId : "";
+
+      next.channels = base.channels.map((channel, index) => {
+        const inc = incoming?.channels?.[index] || {};
+        return {
+          ...channel,
+          name: typeof inc.name === "string" && inc.name.trim() ? inc.name : channel.name,
+          level: clampInt(inc.level, 0, 127, channel.level),
+          pan: clampInt(inc.pan, 0, 127, channel.pan),
+          mute: Boolean(inc.mute),
+          aux1: clampInt(inc.aux1, 0, 127, channel.aux1),
+          aux2: clampInt(inc.aux2, 0, 127, channel.aux2),
+          efx: clampInt(inc.efx, 0, 127, channel.efx),
+          subMix: clampInt(inc.subMix, 0, 127, channel.subMix),
+          eqHi: clampInt(inc.eqHi, 0, 127, channel.eqHi),
+          eqMidFreq: clampInt(inc.eqMidFreq, 0, 127, channel.eqMidFreq),
+          eqMidLevel: clampInt(inc.eqMidLevel, 0, 127, channel.eqMidLevel),
+          eqLo: clampInt(inc.eqLo, 0, 127, channel.eqLo),
+          mapping: getFactoryChannelMapping(index)
+        };
+      });
+
+      for (const def of GLOBAL_CONTROL_DEFS) {
+        next.globals[def.key] = def.type === "toggle"
+          ? Boolean(incoming?.globals?.[def.key])
+          : clampInt(incoming?.globals?.[def.key], def.min ?? 0, def.max ?? 127, def.defaultValue);
+        next.globalMapping[def.key] = FACTORY_GLOBAL_MAPPING[def.key] || "";
+      }
+
+      return next;
+    }
+
+    function sanitizeCc(value) {
+      if (value === "" || value === null || value === undefined) {
+        return "";
+      }
+      const numeric = Number(value);
+      if (!Number.isInteger(numeric) || numeric < 0 || numeric > 127) {
+        return "";
+      }
+      return String(numeric);
+    }
+
+    function clampInt(value, min, max, fallback) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) {
+        return fallback;
+      }
+      return Math.min(max, Math.max(min, Math.round(numeric)));
+    }
+
+    let state = loadState();
+    let midiAccess = null;
+    let midiOutputs = new Map();
+
+    const elements = {
+      permissionDot: document.getElementById("permissionDot"),
+      permissionText: document.getElementById("permissionText"),
+      portAdvice: document.getElementById("portAdvice"),
+      channelsRoot: document.getElementById("channelsRoot"),
+      globalControls: document.getElementById("globalControls")
+    };
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function appendLog(message) {
+      console.log("[L6max MIDI] " + message);
+    }
+
+    function getSelectedOutput() {
+      return midiOutputs.get(state.selectedOutputId) || null;
+    }
+
+    function classifyOutput(output) {
+      const text = [output?.name, output?.manufacturer].filter(Boolean).join(" ");
+      if (/Mixer Control Port/i.test(text)) return "mixer-control";
+      if (/Editor Port|for L6 Editor/i.test(text)) return "editor";
+      if (/MIDI I\/O Port/i.test(text)) return "midi-io";
+      return "unknown";
+    }
+
+    function describeOutput(output) {
+      const role = classifyOutput(output);
+      if (role === "mixer-control") return "Mixer control";
+      if (role === "editor") return "Editor only";
+      if (role === "midi-io") return "Physical MIDI I/O bridge";
+      return "Unknown role";
+    }
+
+    function isSecureEnough() {
+      return window.isSecureContext;
+    }
+
+    function updatePermissionUi() {
+      const connected = Boolean(midiAccess);
+      const output = getSelectedOutput();
+      elements.permissionDot.className = "dot " + (connected && output ? "ok" : connected ? "warn" : "");
+      elements.permissionText.textContent = connected
+        ? output
+          ? "Mixer control connected"
+          : "Mixer Control Port not found"
+        : "MIDI not connected";
+    }
+
+    function renderStatus() {
+      const output = getSelectedOutput();
+
+      if (!isSecureEnough()) {
+        elements.portAdvice.innerHTML = "Web MIDI needs a secure context. Open this page in Chromium or serve it from <strong>http://localhost</strong>.";
+      } else if (!midiAccess) {
+        elements.portAdvice.innerHTML = "This page uses only <strong>L6max Mixer Control Port</strong> on <strong>MIDI CH 1</strong>.";
+      } else if (output) {
+        elements.portAdvice.innerHTML = "Connected to <strong>" + escapeHtml(output.name || output.id) + "</strong> on <strong>MIDI CH 1</strong>.";
+      } else {
+        elements.portAdvice.innerHTML = "<strong>L6max Mixer Control Port</strong> was not found. Leave only the mixer connected by USB and press <strong>Connect MIDI</strong> again.";
+      }
+
+      updatePermissionUi();
+    }
+
+    function renderGlobals() {
+      elements.globalControls.innerHTML = "";
+      for (const def of GLOBAL_CONTROL_DEFS) {
+        const card = document.createElement("div");
+        card.className = "channel-card";
+
+        if (def.type === "toggle") {
+          card.innerHTML =
+            "<div class='switch-control'>" +
+            "  <div>" +
+            "    <strong>" + def.label + "</strong>" +
+            "    <div class='channel-subtitle'>" + (state.globals[def.key] ? "On" : "Off") + "</div>" +
+            "  </div>" +
+            "  <label class='switch'>" +
+            "    <input type='checkbox' data-global-toggle='" + def.key + "'" + (state.globals[def.key] ? " checked" : "") + ">" +
+            "    <span class='switch-track'></span>" +
+            "  </label>" +
+            "</div>";
+        } else {
+          card.innerHTML =
+            "<div class='control-head'>" +
+            "  <strong>" + def.label + "</strong>" +
+            "  <span class='muted'>" + state.globals[def.key] + "</span>" +
+            "</div>" +
+            "<div class='control'>" +
+            "<input type='range' min='" + (def.min ?? 0) + "' max='" + (def.max ?? 127) + "' value='" + state.globals[def.key] + "' data-global-range='" + def.key + "'>" +
+            "<div class='range-meta'><span>" + (def.hint || "Raw value") + "</span><span>" + state.globals[def.key] + "</span></div>" +
+            "</div>";
+        }
+        elements.globalControls.appendChild(card);
+      }
+    }
+
+    function renderChannels() {
+      elements.channelsRoot.innerHTML = "";
+      state.channels.forEach((channel, index) => {
+        const card = document.createElement("section");
+        card.className = "channel-card";
+
+        const head = document.createElement("div");
+        head.className = "channel-head";
+        head.innerHTML =
+          "<div class='channel-number'>CH" + channel.id + "</div>" +
+          "<div class='stack'>" +
+          "  <strong>Channel " + channel.id + "</strong>" +
+          "  <div class='channel-subtitle'>Fixed L6max factory CC mapping.</div>" +
+          "</div>";
+        card.appendChild(head);
+
+        const quick = document.createElement("div");
+        quick.className = "quick-controls";
+
+        for (const key of QUICK_RANGE_CONTROLS) {
+          const control = createRangeControl(index, key, channel[key], channel.mapping[key]);
+          quick.appendChild(control);
+        }
+
+        const muteControl = createToggleControl(index, "mute", channel.mute, channel.mapping.mute);
+        quick.appendChild(muteControl);
+        card.appendChild(quick);
+
+        elements.channelsRoot.appendChild(card);
+      });
+
+      bindDynamicEvents();
+    }
+
+    function createRangeControl(channelIndex, key, value, mappedCc) {
+      const def = RANGE_DEFS[key];
+      const wrapper = document.createElement("div");
+      wrapper.className = "control";
+      wrapper.innerHTML =
+        "<div class='control-head'>" +
+        "  <strong>" + def.label + "</strong>" +
+        "  <span class='muted'>" + value + "</span>" +
+        "</div>" +
+        "<input type='range' min='" + def.min + "' max='" + def.max + "' value='" + value + "' data-channel-range='" + channelIndex + ":" + key + "'>" +
+        "<div class='range-meta'><span>" + def.hint + "</span><span>" + value + "</span></div>";
+      return wrapper;
+    }
+
+    function createToggleControl(channelIndex, key, value) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "switch-control";
+      wrapper.innerHTML =
+        "<div>" +
+        "  <strong>Mute</strong>" +
+        "  <div class='channel-subtitle'>" + (value ? "Muted" : "Live") + "</div>" +
+        "</div>" +
+        "<label class='switch'>" +
+        "  <input type='checkbox' data-channel-toggle='" + channelIndex + ":" + key + "'" + (value ? " checked" : "") + ">" +
+        "  <span class='switch-track'></span>" +
+        "</label>";
+      return wrapper;
+    }
+
+    function bindDynamicEvents() {
+      document.querySelectorAll("[data-channel-range]").forEach((input) => {
+        input.addEventListener("input", (event) => {
+          const [channelIndex, key] = event.target.dataset.channelRange.split(":");
+          state.channels[Number(channelIndex)][key] = clampInt(event.target.value, 0, 127, 0);
+          sendChannelControl(Number(channelIndex), key);
+          updateAll();
+        });
+      });
+
+      document.querySelectorAll("[data-channel-toggle]").forEach((input) => {
+        input.addEventListener("change", (event) => {
+          const [channelIndex, key] = event.target.dataset.channelToggle.split(":");
+          state.channels[Number(channelIndex)][key] = event.target.checked;
+          sendChannelControl(Number(channelIndex), key);
+          updateAll();
+        });
+      });
+
+      document.querySelectorAll("[data-global-range]").forEach((input) => {
+        input.addEventListener("input", (event) => {
+          const key = event.target.dataset.globalRange;
+          const def = GLOBAL_CONTROL_DEFS.find((item) => item.key === key);
+          state.globals[key] = clampInt(event.target.value, def?.min ?? 0, def?.max ?? 127, def?.defaultValue ?? 0);
+          sendGlobalControl(key);
+          updateAll();
+        });
+      });
+
+      document.querySelectorAll("[data-global-toggle]").forEach((input) => {
+        input.addEventListener("change", (event) => {
+          const key = event.target.dataset.globalToggle;
+          state.globals[key] = event.target.checked;
+          sendGlobalControl(key);
+          updateAll();
+        });
+      });
+    }
+
+    function ccValueFromState(value) {
+      return typeof value === "boolean" ? (value ? 127 : 0) : clampInt(value, 0, 127, 0);
+    }
+
+    function sendControlChange(cc, value, label) {
+      const output = getSelectedOutput();
+      if (!output) {
+        appendLog("Skipped " + label + ": Mixer Control Port is not connected.");
+        return false;
+      }
+      const status = 0xB0 + (FIXED_MIDI_CHANNEL - 1);
+      const ccNumber = clampInt(cc, 0, 127, 0);
+      const dataValue = clampInt(value, 0, 127, 0);
+      try {
+        output.send([status, ccNumber, dataValue]);
+        appendLog("Sent " + label + " on CC " + ccNumber + " value " + dataValue + ".");
+        return true;
+      } catch (error) {
+        appendLog("Failed to send " + label + ": " + error.message);
+        return false;
+      }
+    }
+
+    function sendChannelControl(channelIndex, key) {
+      const channel = state.channels[channelIndex];
+      const cc = channel.mapping[key];
+      if (cc === "") {
+        appendLog("Channel " + channel.id + " " + key + " not sent: CC mapping is empty.");
+        return;
+      }
+      sendControlChange(cc, ccValueFromState(channel[key]), "CH " + channel.id + " " + key.toUpperCase());
+    }
+
+    function sendGlobalControl(key) {
+      const cc = state.globalMapping[key];
+      if (cc === "") {
+        appendLog("Global " + key + " not sent: CC mapping is empty.");
+        return;
+      }
+      sendControlChange(cc, ccValueFromState(state.globals[key]), "GLOBAL " + key.toUpperCase());
+    }
+
+    function escapeAttr(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function escapeHtml(value) {
+      return escapeAttr(value);
+    }
+
+    function updateAll(shouldSave = true) {
+      if (shouldSave) {
+        saveState();
+      }
+      renderStatus();
+      renderGlobals();
+      renderChannels();
+    }
+
+    async function connectMidi() {
+      if (!("requestMIDIAccess" in navigator)) {
+        appendLog("Web MIDI API is not available in this browser.");
+        return;
+      }
+
+      try {
+        midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+        midiAccess.onstatechange = () => updateMidiPorts();
+        appendLog("MIDI access granted.");
+        updateMidiPorts();
+      } catch (error) {
+        appendLog("MIDI connection failed: " + error.message);
+      }
+    }
+
+    function updateMidiPorts() {
+      midiOutputs = new Map();
+      if (midiAccess) {
+        for (const output of midiAccess.outputs.values()) {
+          midiOutputs.set(output.id, output);
+        }
+      }
+      const mixerControlOutput = Array.from(midiOutputs.values()).find((output) => classifyOutput(output) === "mixer-control");
+      state.selectedOutputId = mixerControlOutput ? mixerControlOutput.id : "";
+      renderStatus();
+    }
+
+    function wireStaticEvents() {
+      document.getElementById("connectButton").addEventListener("click", connectMidi);
+    }
+
+    wireStaticEvents();
+    updateAll(false);
+  </script>
+</body>
+</html>

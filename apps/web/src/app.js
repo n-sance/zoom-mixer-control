@@ -1,0 +1,540 @@
+const APP_VERSION = "__APP_VERSION__";
+const STORAGE_KEY = "zoom-l6max-controller-state-v1";
+const LEGACY_STORAGE_KEYS = [
+  "l6max-web-midi-controller-state-v2",
+  "l6max-web-midi-controller-state-v1"
+];
+const FIXED_MIDI_CHANNEL = 1;
+const FACTORY_CONFIG = window.__L6MAX_FACTORY_CONFIG__;
+
+const QUICK_RANGE_CONTROLS = [
+  "level",
+  "pan",
+  "aux1",
+  "aux2",
+  "efx",
+  "subMix",
+  "eqHi",
+  "eqMidFreq",
+  "eqMidLevel",
+  "eqLo"
+];
+
+const RANGE_DEFS = {
+  level: { label: "Level", min: 0, max: 127, defaultValue: 100, hint: "0 = off, 127 = max" },
+  pan: { label: "Pan", min: 0, max: 127, defaultValue: 64, hint: "64 = center" },
+  aux1: { label: "Aux 1", min: 0, max: 127, defaultValue: 0, hint: "Send to AUX 1" },
+  aux2: { label: "Aux 2", min: 0, max: 127, defaultValue: 0, hint: "Send to AUX 2" },
+  efx: { label: "EFX Send", min: 0, max: 127, defaultValue: 0, hint: "Internal effect send" },
+  subMix: { label: "Sub Mix", min: 0, max: 127, defaultValue: 0, hint: "SUB MIX send" },
+  eqHi: { label: "EQ Hi", min: 0, max: 127, defaultValue: 64, hint: "High gain" },
+  eqMidFreq: { label: "EQ Mid Freq", min: 0, max: 127, defaultValue: 64, hint: "Mid frequency" },
+  eqMidLevel: { label: "EQ Mid", min: 0, max: 127, defaultValue: 64, hint: "Mid gain" },
+  eqLo: { label: "EQ Lo", min: 0, max: 127, defaultValue: 64, hint: "Low gain" }
+};
+
+const GLOBAL_CONTROL_DEFS = [
+  { key: "compressor", label: "Compressor", type: "toggle", defaultValue: false },
+  { key: "mono5", label: "MONO x2 CH 5", type: "toggle", defaultValue: false },
+  { key: "mono6", label: "MONO x2 CH 6", type: "toggle", defaultValue: false },
+  { key: "usb12", label: "USB 1/2", type: "toggle", defaultValue: false },
+  { key: "usb34", label: "USB 3/4", type: "toggle", defaultValue: false },
+  { key: "efxType", label: "EFX Type", type: "range", defaultValue: 0, min: 0, max: 127, hint: "Raw EFX type value" }
+];
+
+function deepClone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function clampInt(value, min, max, fallback) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, Math.round(numeric)));
+}
+
+function sanitizeCc(value) {
+  if (value === "" || value === null || value === undefined) {
+    return "";
+  }
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric < 0 || numeric > 127) {
+    return "";
+  }
+  return String(numeric);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;");
+}
+
+function getFactoryState() {
+  const next = deepClone(FACTORY_CONFIG.state);
+  next.midiChannel = FIXED_MIDI_CHANNEL;
+  next.selectedOutputId = "";
+  return next;
+}
+
+function normalizeImportedPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Config must be a JSON object.");
+  }
+
+  if (payload.state && typeof payload.state === "object") {
+    return payload.state;
+  }
+
+  if (Array.isArray(payload.channels) && payload.globals && payload.globalMapping) {
+    return payload;
+  }
+
+  throw new Error("Unsupported config format.");
+}
+
+function mergeState(base, incoming) {
+  const next = getFactoryState();
+  next.selectedOutputId = typeof incoming?.selectedOutputId === "string" ? incoming.selectedOutputId : "";
+
+  next.channels = base.channels.map((channel, index) => {
+    const inc = incoming?.channels?.[index] || {};
+    const mapping = { ...channel.mapping };
+
+    for (const key of Object.keys(mapping)) {
+      if (inc.mapping && Object.prototype.hasOwnProperty.call(inc.mapping, key)) {
+        mapping[key] = sanitizeCc(inc.mapping[key]);
+      }
+    }
+
+    return {
+      ...channel,
+      id: channel.id,
+      name: typeof inc.name === "string" && inc.name.trim() ? inc.name.trim() : channel.name,
+      level: clampInt(inc.level, 0, 127, channel.level),
+      pan: clampInt(inc.pan, 0, 127, channel.pan),
+      mute: Boolean(inc.mute),
+      aux1: clampInt(inc.aux1, 0, 127, channel.aux1),
+      aux2: clampInt(inc.aux2, 0, 127, channel.aux2),
+      efx: clampInt(inc.efx, 0, 127, channel.efx),
+      subMix: clampInt(inc.subMix, 0, 127, channel.subMix),
+      eqHi: clampInt(inc.eqHi, 0, 127, channel.eqHi),
+      eqMidFreq: clampInt(inc.eqMidFreq, 0, 127, channel.eqMidFreq),
+      eqMidLevel: clampInt(inc.eqMidLevel, 0, 127, channel.eqMidLevel),
+      eqLo: clampInt(inc.eqLo, 0, 127, channel.eqLo),
+      mapping
+    };
+  });
+
+  for (const def of GLOBAL_CONTROL_DEFS) {
+    next.globals[def.key] = def.type === "toggle"
+      ? Boolean(incoming?.globals?.[def.key])
+      : clampInt(incoming?.globals?.[def.key], def.min ?? 0, def.max ?? 127, def.defaultValue);
+
+    next.globalMapping[def.key] = sanitizeCc(incoming?.globalMapping?.[def.key] ?? base.globalMapping[def.key]);
+  }
+
+  return next;
+}
+
+function loadState() {
+  const candidateKeys = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
+
+  for (const key of candidateKeys) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        continue;
+      }
+      const parsed = normalizeImportedPayload(JSON.parse(raw));
+      return mergeState(getFactoryState(), parsed);
+    } catch (error) {
+      console.warn("[L6max] Failed to parse saved state from", key, error);
+    }
+  }
+
+  return getFactoryState();
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeStateForExport(state)));
+}
+
+function sanitizeStateForExport(value) {
+  return {
+    ...deepClone(value),
+    midiChannel: FIXED_MIDI_CHANNEL,
+    selectedOutputId: ""
+  };
+}
+
+function createExportDocument() {
+  return {
+    schemaVersion: FACTORY_CONFIG.schemaVersion ?? 1,
+    appId: FACTORY_CONFIG.appId ?? "zoom-l6max-controller",
+    mixerModel: FACTORY_CONFIG.mixerModel ?? "ZOOM L6 Max",
+    presetName: "User Export",
+    exportedAt: new Date().toISOString(),
+    appVersion: APP_VERSION,
+    state: sanitizeStateForExport(state)
+  };
+}
+
+let state = loadState();
+let midiAccess = null;
+let midiOutputs = new Map();
+
+const elements = {
+  connectButton: document.getElementById("connectButton"),
+  permissionDot: document.getElementById("permissionDot"),
+  permissionText: document.getElementById("permissionText"),
+  portAdvice: document.getElementById("portAdvice"),
+  channelsRoot: document.getElementById("channelsRoot"),
+  globalControls: document.getElementById("globalControls"),
+  exportConfigButton: document.getElementById("exportConfigButton"),
+  importConfigButton: document.getElementById("importConfigButton"),
+  resetConfigButton: document.getElementById("resetConfigButton"),
+  configFileInput: document.getElementById("configFileInput"),
+  configFlash: document.getElementById("configFlash")
+};
+
+function flash(message, isError = false) {
+  elements.configFlash.textContent = message;
+  elements.configFlash.style.color = isError ? "var(--danger)" : "var(--accent-2)";
+  window.clearTimeout(flash.timeoutId);
+  flash.timeoutId = window.setTimeout(() => {
+    elements.configFlash.textContent = "";
+  }, 2600);
+}
+
+function appendLog(message) {
+  console.log("[L6max MIDI] " + message);
+}
+
+function getSelectedOutput() {
+  return midiOutputs.get(state.selectedOutputId) || null;
+}
+
+function classifyOutput(output) {
+  const text = [output?.name, output?.manufacturer].filter(Boolean).join(" ");
+  if (/Mixer Control Port/i.test(text)) return "mixer-control";
+  if (/Editor Port|for L6 Editor/i.test(text)) return "editor";
+  if (/MIDI I\/O Port/i.test(text)) return "midi-io";
+  return "unknown";
+}
+
+function isSecureEnough() {
+  return window.isSecureContext;
+}
+
+function updatePermissionUi() {
+  const connected = Boolean(midiAccess);
+  const output = getSelectedOutput();
+  elements.permissionDot.className = "dot " + (connected && output ? "ok" : connected ? "warn" : "");
+  elements.permissionText.textContent = connected
+    ? output
+      ? "Mixer control connected"
+      : "Mixer Control Port not found"
+    : "MIDI not connected";
+}
+
+function renderStatus() {
+  const output = getSelectedOutput();
+
+  if (!isSecureEnough()) {
+    elements.portAdvice.innerHTML = "Web MIDI needs a secure context. Open this page in Chromium, Electron, or serve it from <strong>http://localhost</strong>.";
+  } else if (!midiAccess) {
+    elements.portAdvice.innerHTML = "This page uses only <strong>L6max Mixer Control Port</strong> on <strong>MIDI CH 1</strong>.";
+  } else if (output) {
+    elements.portAdvice.innerHTML = "Connected to <strong>" + escapeHtml(output.name || output.id) + "</strong> on <strong>MIDI CH 1</strong>.";
+  } else {
+    elements.portAdvice.innerHTML = "<strong>L6max Mixer Control Port</strong> was not found. Leave only the mixer connected by USB and press <strong>Connect MIDI</strong> again.";
+  }
+
+  updatePermissionUi();
+}
+
+function renderGlobals() {
+  elements.globalControls.innerHTML = "";
+
+  for (const def of GLOBAL_CONTROL_DEFS) {
+    const card = document.createElement("div");
+    card.className = "channel-card";
+
+    if (def.type === "toggle") {
+      card.innerHTML =
+        "<div class='switch-control'>" +
+        "  <div>" +
+        "    <strong>" + def.label + "</strong>" +
+        "    <div class='channel-subtitle'>CC " + (state.globalMapping[def.key] || "off") + " • " + (state.globals[def.key] ? "On" : "Off") + "</div>" +
+        "  </div>" +
+        "  <label class='switch'>" +
+        "    <input type='checkbox' data-global-toggle='" + def.key + "'" + (state.globals[def.key] ? " checked" : "") + ">" +
+        "    <span class='switch-track'></span>" +
+        "  </label>" +
+        "</div>";
+    } else {
+      card.innerHTML =
+        "<div class='control-head'>" +
+        "  <strong>" + def.label + "</strong>" +
+        "  <span class='muted'>" + state.globals[def.key] + "</span>" +
+        "</div>" +
+        "<div class='control'>" +
+        "  <input type='range' min='" + (def.min ?? 0) + "' max='" + (def.max ?? 127) + "' value='" + state.globals[def.key] + "' data-global-range='" + def.key + "'>" +
+        "  <div class='range-meta'><span>" + (def.hint || "Raw value") + "</span><span>CC " + (state.globalMapping[def.key] || "off") + "</span></div>" +
+        "</div>";
+    }
+
+    elements.globalControls.appendChild(card);
+  }
+}
+
+function createRangeControl(channelIndex, key, value, mappedCc) {
+  const def = RANGE_DEFS[key];
+  const wrapper = document.createElement("div");
+  wrapper.className = "control";
+  wrapper.innerHTML =
+    "<div class='control-head'>" +
+    "  <strong>" + def.label + "</strong>" +
+    "  <span class='muted'>" + value + "</span>" +
+    "</div>" +
+    "<input type='range' min='" + def.min + "' max='" + def.max + "' value='" + value + "' data-channel-range='" + channelIndex + ":" + key + "'>" +
+    "<div class='range-meta'><span>" + def.hint + "</span><span>CC " + (mappedCc || "off") + "</span></div>";
+  return wrapper;
+}
+
+function createToggleControl(channelIndex, value, mappedCc) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "switch-control";
+  wrapper.innerHTML =
+    "<div>" +
+    "  <strong>Mute</strong>" +
+    "  <div class='channel-subtitle'>CC " + (mappedCc || "off") + " • " + (value ? "Muted" : "Live") + "</div>" +
+    "</div>" +
+    "<label class='switch'>" +
+    "  <input type='checkbox' data-channel-toggle='" + channelIndex + ":mute'" + (value ? " checked" : "") + ">" +
+    "  <span class='switch-track'></span>" +
+    "</label>";
+  return wrapper;
+}
+
+function renderChannels() {
+  elements.channelsRoot.innerHTML = "";
+
+  state.channels.forEach((channel, index) => {
+    const card = document.createElement("section");
+    card.className = "channel-card";
+
+    const head = document.createElement("div");
+    head.className = "channel-head";
+    head.innerHTML =
+      "<div class='channel-number'>CH" + channel.id + "</div>" +
+      "<div class='stack'>" +
+      "  <strong>" + escapeHtml(channel.name) + "</strong>" +
+      "  <div class='channel-subtitle'>Mapping lives in config JSON and survives export/import.</div>" +
+      "</div>";
+    card.appendChild(head);
+
+    const quick = document.createElement("div");
+    quick.className = "quick-controls";
+
+    for (const key of QUICK_RANGE_CONTROLS) {
+      quick.appendChild(createRangeControl(index, key, channel[key], channel.mapping[key]));
+    }
+
+    quick.appendChild(createToggleControl(index, channel.mute, channel.mapping.mute));
+    card.appendChild(quick);
+    elements.channelsRoot.appendChild(card);
+  });
+
+  bindDynamicEvents();
+}
+
+function bindDynamicEvents() {
+  document.querySelectorAll("[data-channel-range]").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      const [channelIndex, key] = event.target.dataset.channelRange.split(":");
+      state.channels[Number(channelIndex)][key] = clampInt(event.target.value, 0, 127, 0);
+      sendChannelControl(Number(channelIndex), key);
+      updateAll();
+    });
+  });
+
+  document.querySelectorAll("[data-channel-toggle]").forEach((input) => {
+    input.addEventListener("change", (event) => {
+      const [channelIndex, key] = event.target.dataset.channelToggle.split(":");
+      state.channels[Number(channelIndex)][key] = event.target.checked;
+      sendChannelControl(Number(channelIndex), key);
+      updateAll();
+    });
+  });
+
+  document.querySelectorAll("[data-global-range]").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      const key = event.target.dataset.globalRange;
+      const def = GLOBAL_CONTROL_DEFS.find((item) => item.key === key);
+      state.globals[key] = clampInt(event.target.value, def?.min ?? 0, def?.max ?? 127, def?.defaultValue ?? 0);
+      sendGlobalControl(key);
+      updateAll();
+    });
+  });
+
+  document.querySelectorAll("[data-global-toggle]").forEach((input) => {
+    input.addEventListener("change", (event) => {
+      const key = event.target.dataset.globalToggle;
+      state.globals[key] = event.target.checked;
+      sendGlobalControl(key);
+      updateAll();
+    });
+  });
+}
+
+function ccValueFromState(value) {
+  return typeof value === "boolean" ? (value ? 127 : 0) : clampInt(value, 0, 127, 0);
+}
+
+function sendControlChange(cc, value, label) {
+  const output = getSelectedOutput();
+  if (!output) {
+    appendLog("Skipped " + label + ": Mixer Control Port is not connected.");
+    return false;
+  }
+
+  const status = 0xB0 + (FIXED_MIDI_CHANNEL - 1);
+  const ccNumber = clampInt(cc, 0, 127, 0);
+  const dataValue = clampInt(value, 0, 127, 0);
+
+  try {
+    output.send([status, ccNumber, dataValue]);
+    appendLog("Sent " + label + " on CC " + ccNumber + " value " + dataValue + ".");
+    return true;
+  } catch (error) {
+    appendLog("Failed to send " + label + ": " + error.message);
+    return false;
+  }
+}
+
+function sendChannelControl(channelIndex, key) {
+  const channel = state.channels[channelIndex];
+  const cc = channel.mapping[key];
+  if (cc === "") {
+    appendLog("Channel " + channel.id + " " + key + " not sent: CC mapping is empty.");
+    return;
+  }
+  sendControlChange(cc, ccValueFromState(channel[key]), "CH " + channel.id + " " + key.toUpperCase());
+}
+
+function sendGlobalControl(key) {
+  const cc = state.globalMapping[key];
+  if (cc === "") {
+    appendLog("Global " + key + " not sent: CC mapping is empty.");
+    return;
+  }
+  sendControlChange(cc, ccValueFromState(state.globals[key]), "GLOBAL " + key.toUpperCase());
+}
+
+async function connectMidi() {
+  if (!("requestMIDIAccess" in navigator)) {
+    appendLog("Web MIDI API is not available in this browser.");
+    renderStatus();
+    return;
+  }
+
+  try {
+    midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    midiAccess.onstatechange = () => updateMidiPorts();
+    appendLog("MIDI access granted.");
+    updateMidiPorts();
+  } catch (error) {
+    appendLog("MIDI connection failed: " + error.message);
+  }
+}
+
+function updateMidiPorts() {
+  const nextOutputs = new Map();
+  if (midiAccess) {
+    for (const output of midiAccess.outputs.values()) {
+      nextOutputs.set(output.id, output);
+    }
+  }
+
+  midiOutputs = nextOutputs;
+
+  if (!midiOutputs.has(state.selectedOutputId)) {
+    const preferred = Array.from(midiOutputs.values()).find((output) => classifyOutput(output) === "mixer-control");
+    state.selectedOutputId = preferred ? preferred.id : "";
+  }
+
+  renderStatus();
+}
+
+function updateAll(shouldSave = true) {
+  if (shouldSave) {
+    saveState();
+  }
+  renderStatus();
+  renderGlobals();
+  renderChannels();
+}
+
+function downloadConfig() {
+  const documentBody = JSON.stringify(createExportDocument(), null, 2);
+  const blob = new Blob([documentBody], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "zoom-l6max-config.json";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  flash("Config exported.");
+}
+
+async function importConfigFromFile(file) {
+  if (!file) {
+    return;
+  }
+
+  try {
+    const content = await file.text();
+    const parsed = JSON.parse(content);
+    const importedState = normalizeImportedPayload(parsed);
+    state = mergeState(getFactoryState(), importedState);
+    saveState();
+    updateAll(false);
+    flash("Config imported.");
+  } catch (error) {
+    console.error(error);
+    flash("Import failed: " + error.message, true);
+  } finally {
+    elements.configFileInput.value = "";
+  }
+}
+
+function resetToFactoryDefaults() {
+  const shouldReset = window.confirm("Reset controller state to factory defaults?");
+  if (!shouldReset) {
+    return;
+  }
+
+  state = getFactoryState();
+  saveState();
+  updateAll(false);
+  flash("Factory defaults restored.");
+}
+
+function wireStaticEvents() {
+  elements.connectButton.addEventListener("click", connectMidi);
+  elements.exportConfigButton.addEventListener("click", downloadConfig);
+  elements.importConfigButton.addEventListener("click", () => elements.configFileInput.click());
+  elements.configFileInput.addEventListener("change", (event) => importConfigFromFile(event.target.files?.[0] || null));
+  elements.resetConfigButton.addEventListener("click", resetToFactoryDefaults);
+}
+
+wireStaticEvents();
+updateAll(false);
+

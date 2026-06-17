@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZOOM L6 Max Controller</title>
+  <style>
+__INLINE_STYLES__
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel sidebar">
+      <section class="stack">
+        <div class="button-row">
+          <button class="primary" id="connectButton">Connect MIDI</button>
+        </div>
+        <div class="pill"><span class="dot" id="permissionDot"></span><span id="permissionText">MIDI not connected</span></div>
+        <div class="notice" id="portAdvice">
+          This page uses only <strong>L6max Mixer Control Port</strong> on <strong>MIDI CH 1</strong>.
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>Config</h2>
+          <p>Preset JSON lives outside the UI now, so import/export already has a clean home.</p>
+        </div>
+        <div class="button-row">
+          <button id="exportConfigButton">Export JSON</button>
+          <button id="importConfigButton">Import JSON</button>
+          <button class="ghost warn" id="resetConfigButton">Factory Reset</button>
+        </div>
+        <input id="configFileInput" type="file" accept="application/json,.json" hidden>
+        <div class="success-flash" id="configFlash"></div>
+      </section>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>Globals</h2>
+          <p>These controls are part of the exported config document too.</p>
+        </div>
+        <div class="utility-grid" id="globalControls"></div>
+      </section>
+    </aside>
+
+    <main class="panel main">
+      <section class="hero">
+        <h1>ZOOM L6 Max Controller</h1>
+        <p>Source is now split for normal development, but release output still ships as one self-contained HTML file.</p>
+      </section>
+      <section class="stack">
+        <div class="channels" id="channelsRoot"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    window.__L6MAX_FACTORY_CONFIG__ = __INLINE_FACTORY_CONFIG__;
+  </script>
+  <script>
+__INLINE_APP_SCRIPT__
+  </script>
+</body>
+</html>
+

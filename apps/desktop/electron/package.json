@@ -1,0 +1,40 @@
+{
+  "name": "@zoom-l6max/desktop-electron",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "sync-web": "node ../../../scripts/sync-electron-shell.mjs",
+    "dev": "npm run sync-web && electron .",
+    "build:dir": "npm run sync-web && electron-builder --dir",
+    "build:mac": "npm run sync-web && electron-builder --mac",
+    "build:win": "npm run sync-web && electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "dev.nsance.zooml6max",
+    "productName": "ZOOM L6 Max Controller",
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "renderer/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    }
+  }
+}
+

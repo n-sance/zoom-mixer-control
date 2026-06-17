@@ -1,0 +1,18 @@
+{
+  "name": "zoom-l6max-controller",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/desktop/electron"
+  ],
+  "scripts": {
+    "build:html": "node scripts/build-single-html.mjs",
+    "prepare:electron": "node scripts/sync-electron-shell.mjs",
+    "build": "npm run build:html && npm run prepare:electron",
+    "desktop:dev": "npm --workspace @zoom-l6max/desktop-electron run dev",
+    "desktop:build:mac": "npm --workspace @zoom-l6max/desktop-electron run build:mac",
+    "desktop:build:win": "npm --workspace @zoom-l6max/desktop-electron run build:win"
+  }
+}
+
