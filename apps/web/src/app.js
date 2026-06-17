@@ -41,6 +41,7 @@ const GLOBAL_CONTROL_DEFS = [
   { key: "usb34", label: "USB 3/4", type: "toggle", defaultValue: false },
   { key: "efxType", label: "EFX Type", type: "range", defaultValue: 0, min: 0, max: 127, hint: "Raw EFX type value" }
 ];
+const GLOBAL_CONTROL_DEF_BY_KEY = Object.fromEntries(GLOBAL_CONTROL_DEFS.map((def) => [def.key, def]));
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -186,6 +187,9 @@ function createExportDocument() {
 let state = loadState();
 let midiAccess = null;
 let midiOutputs = new Map();
+let midiSendFrameId = 0;
+let saveStateTimeoutId = 0;
+const pendingMidiMessages = new Map();
 
 const elements = {
   connectButton: document.getElementById("connectButton"),
@@ -212,6 +216,13 @@ function flash(message, isError = false) {
 
 function appendLog(message) {
   console.log("[L6max MIDI] " + message);
+}
+
+function scheduleStateSave() {
+  window.clearTimeout(saveStateTimeoutId);
+  saveStateTimeoutId = window.setTimeout(() => {
+    saveState();
+  }, 160);
 }
 
 function getSelectedOutput() {
@@ -280,11 +291,11 @@ function renderGlobals() {
       card.innerHTML =
         "<div class='control-head'>" +
         "  <strong>" + def.label + "</strong>" +
-        "  <span class='muted'>" + state.globals[def.key] + "</span>" +
+        "  <span class='muted' data-global-value='" + def.key + "'>" + state.globals[def.key] + "</span>" +
         "</div>" +
         "<div class='control'>" +
         "  <input type='range' min='" + (def.min ?? 0) + "' max='" + (def.max ?? 127) + "' value='" + state.globals[def.key] + "' data-global-range='" + def.key + "'>" +
-        "  <div class='range-meta'><span>" + (def.hint || "Raw value") + "</span><span>CC " + (state.globalMapping[def.key] || "off") + "</span></div>" +
+        "  <div class='range-meta'><span>" + (def.hint || "Raw value") + "</span><span data-global-meta='" + def.key + "'>" + state.globals[def.key] + " • CC " + (state.globalMapping[def.key] || "off") + "</span></div>" +
         "</div>";
     }
 
@@ -299,10 +310,10 @@ function createRangeControl(channelIndex, key, value, mappedCc) {
   wrapper.innerHTML =
     "<div class='control-head'>" +
     "  <strong>" + def.label + "</strong>" +
-    "  <span class='muted'>" + value + "</span>" +
+    "  <span class='muted' data-channel-value='" + channelIndex + ":" + key + "'>" + value + "</span>" +
     "</div>" +
     "<input type='range' min='" + def.min + "' max='" + def.max + "' value='" + value + "' data-channel-range='" + channelIndex + ":" + key + "'>" +
-    "<div class='range-meta'><span>" + def.hint + "</span><span>CC " + (mappedCc || "off") + "</span></div>";
+    "<div class='range-meta'><span>" + def.hint + "</span><span data-channel-meta='" + channelIndex + ":" + key + "'>" + value + " • CC " + (mappedCc || "off") + "</span></div>";
   return wrapper;
 }
 
@@ -350,45 +361,148 @@ function renderChannels() {
     elements.channelsRoot.appendChild(card);
   });
 
-  bindDynamicEvents();
+}
+
+function updateChannelRangeUi(channelIndex, key, value) {
+  const valueText = String(value);
+  const valueElement = document.querySelector("[data-channel-value='" + channelIndex + ":" + key + "']");
+  const metaElement = document.querySelector("[data-channel-meta='" + channelIndex + ":" + key + "']");
+  const ccLabel = state.channels[channelIndex]?.mapping?.[key] || "off";
+
+  if (valueElement) {
+    valueElement.textContent = valueText;
+  }
+
+  if (metaElement) {
+    metaElement.textContent = valueText + " • CC " + ccLabel;
+  }
+}
+
+function updateGlobalRangeUi(key, value) {
+  const valueText = String(value);
+  const valueElement = document.querySelector("[data-global-value='" + key + "']");
+  const metaElement = document.querySelector("[data-global-meta='" + key + "']");
+  const ccLabel = state.globalMapping[key] || "off";
+
+  if (valueElement) {
+    valueElement.textContent = valueText;
+  }
+
+  if (metaElement) {
+    metaElement.textContent = valueText + " • CC " + ccLabel;
+  }
+}
+
+function flushPendingMidiMessages() {
+  midiSendFrameId = 0;
+
+  for (const message of pendingMidiMessages.values()) {
+    sendControlChange(message.cc, message.value, message.label, { log: false });
+  }
+
+  pendingMidiMessages.clear();
+}
+
+function flushPendingMidiMessagesNow() {
+  if (midiSendFrameId) {
+    window.cancelAnimationFrame(midiSendFrameId);
+  }
+  flushPendingMidiMessages();
+}
+
+function scheduleMidiSend(queueKey, cc, value, label) {
+  pendingMidiMessages.set(queueKey, {
+    cc,
+    value,
+    label
+  });
+
+  if (midiSendFrameId) {
+    return;
+  }
+
+  midiSendFrameId = window.requestAnimationFrame(flushPendingMidiMessages);
 }
 
 function bindDynamicEvents() {
-  document.querySelectorAll("[data-channel-range]").forEach((input) => {
-    input.addEventListener("input", (event) => {
-      const [channelIndex, key] = event.target.dataset.channelRange.split(":");
-      state.channels[Number(channelIndex)][key] = clampInt(event.target.value, 0, 127, 0);
-      sendChannelControl(Number(channelIndex), key);
-      updateAll();
-    });
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+
+    if (target.dataset.channelRange) {
+      const [channelIndexRaw, key] = target.dataset.channelRange.split(":");
+      const channelIndex = Number(channelIndexRaw);
+      const value = clampInt(target.value, 0, 127, 0);
+      state.channels[channelIndex][key] = value;
+      updateChannelRangeUi(channelIndex, key, value);
+      scheduleStateSave();
+
+      const cc = state.channels[channelIndex].mapping[key];
+      if (cc === "") {
+        return;
+      }
+
+      scheduleMidiSend("channel:" + channelIndex + ":" + key, cc, value, "CH " + state.channels[channelIndex].id + " " + key.toUpperCase());
+      return;
+    }
+
+    if (target.dataset.globalRange) {
+      const key = target.dataset.globalRange;
+      const def = GLOBAL_CONTROL_DEF_BY_KEY[key];
+      const value = clampInt(target.value, def?.min ?? 0, def?.max ?? 127, def?.defaultValue ?? 0);
+      state.globals[key] = value;
+      updateGlobalRangeUi(key, value);
+      scheduleStateSave();
+
+      const cc = state.globalMapping[key];
+      if (cc === "") {
+        return;
+      }
+
+      scheduleMidiSend("global:" + key, cc, value, "GLOBAL " + key.toUpperCase());
+    }
   });
 
-  document.querySelectorAll("[data-channel-toggle]").forEach((input) => {
-    input.addEventListener("change", (event) => {
-      const [channelIndex, key] = event.target.dataset.channelToggle.split(":");
-      state.channels[Number(channelIndex)][key] = event.target.checked;
-      sendChannelControl(Number(channelIndex), key);
-      updateAll();
-    });
-  });
+  document.addEventListener("change", (event) => {
+    const target = event.target;
 
-  document.querySelectorAll("[data-global-range]").forEach((input) => {
-    input.addEventListener("input", (event) => {
-      const key = event.target.dataset.globalRange;
-      const def = GLOBAL_CONTROL_DEFS.find((item) => item.key === key);
-      state.globals[key] = clampInt(event.target.value, def?.min ?? 0, def?.max ?? 127, def?.defaultValue ?? 0);
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
+
+    if (target.dataset.channelToggle) {
+      const [channelIndexRaw, key] = target.dataset.channelToggle.split(":");
+      state.channels[Number(channelIndexRaw)][key] = target.checked;
+      sendChannelControl(Number(channelIndexRaw), key);
+      updateAll();
+      return;
+    }
+
+    if (target.dataset.globalToggle) {
+      const key = target.dataset.globalToggle;
+      state.globals[key] = target.checked;
       sendGlobalControl(key);
       updateAll();
-    });
-  });
+      return;
+    }
 
-  document.querySelectorAll("[data-global-toggle]").forEach((input) => {
-    input.addEventListener("change", (event) => {
-      const key = event.target.dataset.globalToggle;
-      state.globals[key] = event.target.checked;
+    if (target.dataset.channelRange) {
+      const [channelIndexRaw, key] = target.dataset.channelRange.split(":");
+      flushPendingMidiMessagesNow();
+      sendChannelControl(Number(channelIndexRaw), key);
+      saveState();
+      return;
+    }
+
+    if (target.dataset.globalRange) {
+      const key = target.dataset.globalRange;
+      flushPendingMidiMessagesNow();
       sendGlobalControl(key);
-      updateAll();
-    });
+      saveState();
+    }
   });
 }
 
@@ -396,10 +510,12 @@ function ccValueFromState(value) {
   return typeof value === "boolean" ? (value ? 127 : 0) : clampInt(value, 0, 127, 0);
 }
 
-function sendControlChange(cc, value, label) {
+function sendControlChange(cc, value, label, options = {}) {
   const output = getSelectedOutput();
   if (!output) {
-    appendLog("Skipped " + label + ": Mixer Control Port is not connected.");
+    if (options.log !== false) {
+      appendLog("Skipped " + label + ": Mixer Control Port is not connected.");
+    }
     return false;
   }
 
@@ -409,10 +525,14 @@ function sendControlChange(cc, value, label) {
 
   try {
     output.send([status, ccNumber, dataValue]);
-    appendLog("Sent " + label + " on CC " + ccNumber + " value " + dataValue + ".");
+    if (options.log !== false) {
+      appendLog("Sent " + label + " on CC " + ccNumber + " value " + dataValue + ".");
+    }
     return true;
   } catch (error) {
-    appendLog("Failed to send " + label + ": " + error.message);
+    if (options.log !== false) {
+      appendLog("Failed to send " + label + ": " + error.message);
+    }
     return false;
   }
 }
@@ -533,8 +653,8 @@ function wireStaticEvents() {
   elements.importConfigButton.addEventListener("click", () => elements.configFileInput.click());
   elements.configFileInput.addEventListener("change", (event) => importConfigFromFile(event.target.files?.[0] || null));
   elements.resetConfigButton.addEventListener("click", resetToFactoryDefaults);
+  bindDynamicEvents();
 }
 
 wireStaticEvents();
 updateAll(false);
-
