@@ -85,6 +85,7 @@ jobs:
 
       - name: Create stable macOS asset names
         run: |
+          cp apps/desktop/electron/dist/*-arm64.dmg apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.dmg
           cp apps/desktop/electron/dist/*-arm64-mac.zip apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.zip
 
       - name: Upload macOS artifacts to workflow artifacts
@@ -92,6 +93,7 @@ jobs:
         with:
           name: l6max-macos-build
           path: |
+            apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.dmg
             apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.zip
 
       - name: Upload macOS assets to GitHub Release
@@ -99,5 +101,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
           gh release upload "${{ github.ref_name }}"
+          apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.dmg
           apps/desktop/electron/dist/zoom-l6max-controller-macos-arm64.zip
           --clobber

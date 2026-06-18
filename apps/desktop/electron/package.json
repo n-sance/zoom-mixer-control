@@ -9,7 +9,7 @@
     "sync-web": "node ../../../scripts/sync-electron-shell.mjs",
     "dev": "npm run sync-web && electron .",
     "build:dir": "npm run sync-web && electron-builder --dir",
-    "build:mac": "npm run sync-web && electron-builder --mac zip",
+    "build:mac": "npm run sync-web && electron-builder --mac",
     "build:mac:dmg": "npm run sync-web && electron-builder --mac dmg",
     "build:win": "npm run sync-web && electron-builder --win"
   },
@@ -35,6 +35,7 @@
       "icon": "assets/app-icon.icns",
       "category": "public.app-category.music",
       "target": [
+        "dmg",
         "zip"
       ]
     },

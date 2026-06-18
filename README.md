@@ -12,6 +12,7 @@ It can run either as:
 Get the newest version here:
 
 - [Latest release page](https://github.com/n-sance/zoom-mixer-control/releases/latest)
+- [Download macOS app (.dmg, Apple Silicon)](https://github.com/n-sance/zoom-mixer-control/releases/latest/download/zoom-l6max-controller-macos-arm64.dmg)
 - [Download macOS app (.zip, Apple Silicon)](https://github.com/n-sance/zoom-mixer-control/releases/latest/download/zoom-l6max-controller-macos-arm64.zip)
 - [Download browser version (.html)](https://github.com/n-sance/zoom-mixer-control/releases/latest/download/l6max-web-midi-controller.html)
 - [Download factory default config (.json)](https://github.com/n-sance/zoom-mixer-control/releases/latest/download/factory-default.json)
@@ -20,7 +21,7 @@ Get the newest version here:
 
 ### Option 1: macOS app
 
-1. Download the `.zip` from the link above.
+1. Download the `.dmg` or `.zip` from the links above.
 2. Open the app.
 3. Connect your ZOOM L6 Max over USB.
 4. Click `Connect MIDI`.
@@ -48,6 +49,7 @@ Note: Web MIDI usually works best in Chromium or Electron. If you use the HTML v
 
 Every GitHub release currently publishes:
 
+- `zoom-l6max-controller-macos-arm64.dmg`
 - `zoom-l6max-controller-macos-arm64.zip`
 - `l6max-web-midi-controller.html`
 - `factory-default.json`
