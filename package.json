@@ -12,6 +12,7 @@
     "build": "npm run build:html && npm run prepare:electron",
     "desktop:dev": "npm --workspace @zoom-l6max/desktop-electron run dev",
     "desktop:build:mac": "npm --workspace @zoom-l6max/desktop-electron run build:mac",
+    "desktop:build:mac:dmg": "npm --workspace @zoom-l6max/desktop-electron run build:mac:dmg",
     "desktop:build:win": "npm --workspace @zoom-l6max/desktop-electron run build:win"
   }
 }
